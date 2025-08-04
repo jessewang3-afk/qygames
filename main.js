@@ -1,13 +1,15 @@
 
+
 // 触摸滑动支持（手机左右滑动控制，touchmove更灵敏）
 let touchStartX = null;
-let lastMoveDir = 0;
+let touchMoveInterval = null;
+let touchMoveDir = 0;
 
 function handleTouchStart(e) {
   if (!falling) return;
   if (e.touches && e.touches.length > 0) {
     touchStartX = e.touches[0].clientX;
-    lastMoveDir = 0;
+    touchMoveDir = 0;
   }
 }
 
@@ -16,12 +18,17 @@ function handleTouchMove(e) {
   if (e.touches && e.touches.length > 0) {
     const moveX = e.touches[0].clientX;
     const dx = moveX - touchStartX;
-    if (Math.abs(dx) > 24) { // 更小阈值更灵敏
+    if (Math.abs(dx) > 10) { // 阈值更小，更灵敏
       const dir = dx > 0 ? 1 : -1;
-      if (dir !== lastMoveDir) {
+      if (dir !== touchMoveDir) {
         moveFalling(dir);
-        lastMoveDir = dir;
-        touchStartX = moveX; // 连续滑动可多次响应
+        touchMoveDir = dir;
+        touchStartX = moveX;
+        // 连续滑动时持续移动
+        if (touchMoveInterval) clearInterval(touchMoveInterval);
+        touchMoveInterval = setInterval(() => {
+          if (falling) moveFalling(dir);
+        }, 80); // 80ms 一次，持续移动
       }
     }
   }
@@ -29,7 +36,11 @@ function handleTouchMove(e) {
 
 function handleTouchEnd(e) {
   touchStartX = null;
-  lastMoveDir = 0;
+  touchMoveDir = 0;
+  if (touchMoveInterval) {
+    clearInterval(touchMoveInterval);
+    touchMoveInterval = null;
+  }
 }
 
 
@@ -111,7 +122,8 @@ function dropNewBadge() {
   }
   falling = { row: 0, col, badge: randomBadge() };
   renderBoard();
-  fallTimer = setInterval(fallStep, 300);
+  // 让下落更慢，原300ms改为500ms
+  fallTimer = setInterval(fallStep, 500);
 }
 
 function fallStep() {
@@ -163,17 +175,35 @@ function handleMergeAndEliminate(row, col) {
     }
   }
   if (mergeTarget) {
-    const idx = badges.indexOf(badge);
-    if (idx < badges.length - 1) {
+    // dongchang.png 两个相邻直接消除并弹动画，其余合成
+    if (badge === 'xinchuan') {
       board[row][col] = null;
-      board[mergeTarget[0]][mergeTarget[1]] = badges[idx + 1];
-      score += 5;
+      board[mergeTarget[0]][mergeTarget[1]] = null;
+      score += 10;
       updateScore();
       renderBoard();
-      setTimeout(() => handleMergeAndEliminate(mergeTarget[0], mergeTarget[1]), 300);
+      setOtherBadgesBlack(true);
+      showBravoAnimation();
+      setTimeout(() => {
+        setOtherBadgesBlack(false);
+        hideBravoAnimation();
+        dropDown();
+      }, 900);
       return;
+    } else {
+      const idx = badges.indexOf(badge);
+      if (idx < badges.length - 1) {
+        board[row][col] = null;
+        board[mergeTarget[0]][mergeTarget[1]] = badges[idx + 1];
+        score += 5;
+        updateScore();
+        renderBoard();
+        setTimeout(() => handleMergeAndEliminate(mergeTarget[0], mergeTarget[1]), 300);
+        return;
+      }
     }
   }
+  // 弹出“你好棒啊”动画
   // 标准三消：横向或纵向连续3个及以上
   const toEliminate = [];
   // 横向
@@ -225,6 +255,53 @@ function handleMergeAndEliminate(row, col) {
   }
 }
 
+// 新川消除时让其他校徽变黑
+function setOtherBadgesBlack(black) {
+  const imgs = document.querySelectorAll('#game-board .cell');
+  imgs.forEach(img => {
+    if (img.src && !img.src.includes('xinchuan.png')) {
+      if (black) {
+        img.style.filter = 'grayscale(1) brightness(0.2)';
+      } else {
+        img.style.filter = '';
+      }
+    }
+  });
+}
+
+function showBravoAnimation() {
+  let bravo = document.getElementById('bravo-anim');
+  if (!bravo) {
+    bravo = document.createElement('div');
+    bravo.id = 'bravo-anim';
+    bravo.style.position = 'fixed';
+    bravo.style.left = '50%';
+    bravo.style.top = '40%';
+    bravo.style.transform = 'translate(-50%, -50%)';
+    bravo.style.background = 'rgba(255,255,255,0.95)';
+    bravo.style.borderRadius = '18px';
+    bravo.style.padding = '28px 38px';
+    bravo.style.fontSize = '2rem';
+    bravo.style.color = '#e67e22';
+    bravo.style.fontWeight = 'bold';
+    bravo.style.boxShadow = '0 4px 24px #aaa';
+    bravo.style.zIndex = '9999';
+    bravo.style.transition = 'opacity 0.3s';
+    bravo.innerText = '新川加油！';
+    document.body.appendChild(bravo);
+  }
+  bravo.style.opacity = '1';
+  bravo.style.display = 'block';
+}
+
+function hideBravoAnimation() {
+  const bravo = document.getElementById('bravo-anim');
+  if (bravo) {
+    bravo.style.opacity = '0';
+    setTimeout(() => { bravo.style.display = 'none'; }, 300);
+  }
+}
+
 function dropDown() {
   for (let col = 0; col < boardCols; col++) {
     for (let row = boardRows - 1; row > 0; row--) {
@@ -246,4 +323,6 @@ document.getElementById('restart').onclick = () => {
 };
 
 // 初始化
+
 createBoard();
+
