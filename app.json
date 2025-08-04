@@ -1,0 +1,8 @@
+{
+  "pages": [
+    "pages/game/game"
+  ],
+  "window": {
+    "navigationBarTitleText": "校徽消消乐"
+  }
+}

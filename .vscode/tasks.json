@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "微信开发者工具预览",
+      "type": "shell",
+      "command": "echo 请在微信开发者工具中点击预览按钮进行预览",
+      "problemMatcher": []
+    }
+  ]
+}

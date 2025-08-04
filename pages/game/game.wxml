@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="board">
+    <block wx:for="{{board}}" wx:key="row">
+      <view class="row">
+        <block wx:for="{{item}}" wx:key="col">
+          <image class="cell" src="../../images/{{item}}.png" data-row="{{index}}" data-col="{{itemIndex}}" bindtap="onCellTap" />
+        </block>
+      </view>
+    </block>
+  </view>
+</view>
