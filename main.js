@@ -1,26 +1,35 @@
-// 触摸滑动支持（手机左右滑动控制）
+
+// 触摸滑动支持（手机左右滑动控制，touchmove更灵敏）
 let touchStartX = null;
-let touchEndX = null;
+let lastMoveDir = 0;
 
 function handleTouchStart(e) {
   if (!falling) return;
   if (e.touches && e.touches.length > 0) {
     touchStartX = e.touches[0].clientX;
+    lastMoveDir = 0;
+  }
+}
+
+function handleTouchMove(e) {
+  if (!falling || touchStartX === null) return;
+  if (e.touches && e.touches.length > 0) {
+    const moveX = e.touches[0].clientX;
+    const dx = moveX - touchStartX;
+    if (Math.abs(dx) > 24) { // 更小阈值更灵敏
+      const dir = dx > 0 ? 1 : -1;
+      if (dir !== lastMoveDir) {
+        moveFalling(dir);
+        lastMoveDir = dir;
+        touchStartX = moveX; // 连续滑动可多次响应
+      }
+    }
   }
 }
 
 function handleTouchEnd(e) {
-  if (!falling || touchStartX === null) return;
-  if (e.changedTouches && e.changedTouches.length > 0) {
-    touchEndX = e.changedTouches[0].clientX;
-    const dx = touchEndX - touchStartX;
-    if (Math.abs(dx) > 30) { // 滑动阈值
-      if (dx > 0) moveFalling(1);
-      else moveFalling(-1);
-    }
-  }
   touchStartX = null;
-  touchEndX = null;
+  lastMoveDir = 0;
 }
 
 
@@ -28,6 +37,7 @@ function handleTouchEnd(e) {
 window.addEventListener('DOMContentLoaded', () => {
   const gameBoard = document.getElementById('game-board');
   gameBoard.addEventListener('touchstart', handleTouchStart);
+  gameBoard.addEventListener('touchmove', handleTouchMove);
   gameBoard.addEventListener('touchend', handleTouchEnd);
 });
 // 校徽消消乐 H5 版（俄罗斯方块式下落+鼠标左右操控）
