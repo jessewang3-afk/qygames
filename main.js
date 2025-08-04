@@ -23,9 +23,13 @@ function handleTouchEnd(e) {
   touchEndX = null;
 }
 
-// 绑定触摸事件到游戏区域
-document.getElementById('game-board').addEventListener('touchstart', handleTouchStart);
-document.getElementById('game-board').addEventListener('touchend', handleTouchEnd);
+
+// 绑定触摸事件到游戏区域，确保 DOM 加载后再绑定
+window.addEventListener('DOMContentLoaded', () => {
+  const gameBoard = document.getElementById('game-board');
+  gameBoard.addEventListener('touchstart', handleTouchStart);
+  gameBoard.addEventListener('touchend', handleTouchEnd);
+});
 // 校徽消消乐 H5 版（俄罗斯方块式下落+鼠标左右操控）
 const badges = ['shangzhong', 'huaer', 'jiaofu', 'dongchang', 'xinchuan'];
 const boardRows = 12;
