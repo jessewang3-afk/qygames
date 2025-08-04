@@ -1,41 +1,68 @@
+
 body {
   background: #f5f5f5;
   font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
   text-align: center;
+  margin: 0;
+  padding: 0;
+}
+h1 {
+  font-size: 1.6rem;
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+#score {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
 }
 #game-board {
   display: inline-block;
-  margin: 20px auto;
+  margin: 10px auto 0 auto;
   background: #fff;
   box-shadow: 0 2px 12px #ccc;
   border-radius: 10px;
-  padding: 16px;
+  padding: 8px;
+  max-width: 98vw;
+  width: 100vw;
+  box-sizing: border-box;
 }
 .row {
   display: flex;
+  justify-content: center;
 }
 .cell {
-  width: 48px;
-  height: 48px;
-  margin: 2px;
+  width: 9vw;
+  max-width: 44px;
+  height: 9vw;
+  max-height: 44px;
+  margin: 1vw 1vw 0 1vw;
   border-radius: 6px;
   background: #eee;
   cursor: pointer;
   transition: box-shadow 0.2s;
+  box-sizing: border-box;
 }
 .cell.selected {
   box-shadow: 0 0 0 3px #409eff;
 }
 button#restart {
-  margin-top: 20px;
+  margin-top: 16px;
   padding: 8px 24px;
-  font-size: 16px;
+  font-size: 1rem;
   border-radius: 6px;
   border: none;
   background: #409eff;
   color: #fff;
   cursor: pointer;
+  width: 80vw;
+  max-width: 320px;
 }
 button#restart:hover {
   background: #66b1ff;
+}
+@media (max-width: 600px) {
+  h1 { font-size: 1.2rem; }
+  #score { font-size: 1rem; }
+  .cell { max-width: 36px; max-height: 36px; }
+  button#restart { font-size: 0.95rem; }
 }
