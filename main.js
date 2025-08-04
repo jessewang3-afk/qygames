@@ -1,3 +1,31 @@
+// 触摸滑动支持（手机左右滑动控制）
+let touchStartX = null;
+let touchEndX = null;
+
+function handleTouchStart(e) {
+  if (!falling) return;
+  if (e.touches && e.touches.length > 0) {
+    touchStartX = e.touches[0].clientX;
+  }
+}
+
+function handleTouchEnd(e) {
+  if (!falling || touchStartX === null) return;
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    touchEndX = e.changedTouches[0].clientX;
+    const dx = touchEndX - touchStartX;
+    if (Math.abs(dx) > 30) { // 滑动阈值
+      if (dx > 0) moveFalling(1);
+      else moveFalling(-1);
+    }
+  }
+  touchStartX = null;
+  touchEndX = null;
+}
+
+// 绑定触摸事件到游戏区域
+document.getElementById('game-board').addEventListener('touchstart', handleTouchStart);
+document.getElementById('game-board').addEventListener('touchend', handleTouchEnd);
 // 校徽消消乐 H5 版（俄罗斯方块式下落+鼠标左右操控）
 const badges = ['shangzhong', 'huaer', 'jiaofu', 'dongchang', 'xinchuan'];
 const boardRows = 12;
