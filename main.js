@@ -1,6 +1,17 @@
+const badges = ['shangzhong', 'huaer', 'jiaofu', 'dongchang', 'xinchuan'];
+const boardRows = 12;
+const boardCols = 8;
+let board = [];
+let score = 0;
+let gameOver = false;
+let falling = null;
+let fallTimer = null;
+let fallSpeed = 500;
+let timer = 60;
+let timerInterval = null;
+let difficultyTimer = null;
 
-
-// 触摸滑动支持（手机左右滑动控制，touchmove更灵敏）
+// 触摸滑动支持
 let touchStartX = null;
 let touchMoveInterval = null;
 let touchMoveDir = 0;
@@ -15,20 +26,20 @@ function handleTouchStart(e) {
 
 function handleTouchMove(e) {
   if (!falling || touchStartX === null) return;
+  e.preventDefault();
   if (e.touches && e.touches.length > 0) {
     const moveX = e.touches[0].clientX;
     const dx = moveX - touchStartX;
-    if (Math.abs(dx) > 10) { // 阈值更小，更灵敏
+    if (Math.abs(dx) > 10) {
       const dir = dx > 0 ? 1 : -1;
       if (dir !== touchMoveDir) {
         moveFalling(dir);
         touchMoveDir = dir;
         touchStartX = moveX;
-        // 连续滑动时持续移动
         if (touchMoveInterval) clearInterval(touchMoveInterval);
         touchMoveInterval = setInterval(() => {
           if (falling) moveFalling(dir);
-        }, 80); // 80ms 一次，持续移动
+        }, 80);
       }
     }
   }
@@ -43,37 +54,20 @@ function handleTouchEnd(e) {
   }
 }
 
+function handleTouchCancel() {
+  handleTouchEnd();
+}
 
-// 绑定触摸事件到游戏区域，确保 DOM 加载后再绑定
 window.addEventListener('DOMContentLoaded', () => {
   const gameBoard = document.getElementById('game-board');
   gameBoard.addEventListener('touchstart', handleTouchStart);
-  gameBoard.addEventListener('touchmove', handleTouchMove);
+  gameBoard.addEventListener('touchmove', handleTouchMove, { passive: false });
   gameBoard.addEventListener('touchend', handleTouchEnd);
+  gameBoard.addEventListener('touchcancel', handleTouchCancel);
 });
-// 校徽消消乐 H5 版（俄罗斯方块式下落+鼠标左右操控）
-const badges = ['shangzhong', 'huaer', 'jiaofu', 'dongchang', 'xinchuan'];
-const boardRows = 12;
-const boardCols = 8;
-let board = [];
-let score = 0;
-let gameOver = false;
-let falling = null; // {row, col, badge}
-let fallTimer = null;
 
 function randomBadge() {
   return badges[Math.floor(Math.random() * badges.length)];
-}
-
-function createBoard() {
-  board = Array.from({ length: boardRows }, () => Array(boardCols).fill(null));
-  score = 0;
-  gameOver = false;
-  falling = null;
-  document.getElementById('game-over').style.display = 'none';
-  updateScore();
-  renderBoard();
-  dropNewBadge();
 }
 
 function updateScore() {
@@ -111,19 +105,49 @@ function renderBoard() {
   }
 }
 
+function createBoard() {
+  board = Array.from({ length: boardRows }, () => Array(boardCols).fill(null));
+  score = 0;
+  gameOver = false;
+  falling = null;
+  document.getElementById('game-over').style.display = 'none';
+  updateScore();
+  renderBoard();
+
+  // 初始化倒计时
+  timer = 600;
+  document.getElementById('timer').innerText = `倒计时：${timer}`;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timer--;
+    document.getElementById('timer').innerText = `倒计时：${timer}`;
+    if (timer <= 0) endGame();
+  }, 1000);
+
+  // 初始化难度提升
+  fallSpeed = 500;
+  document.getElementById('speed').innerText = `速度：${fallSpeed}ms`;
+  if (difficultyTimer) clearInterval(difficultyTimer);
+  difficultyTimer = setInterval(() => {
+    if (fallSpeed > 50) {
+      fallSpeed -= 50;
+      document.getElementById('speed').innerText = `速度：${fallSpeed}ms`;
+    }
+  }, 20000);
+
+  dropNewBadge();
+}
+
 function dropNewBadge() {
   if (gameOver) return;
   const col = Math.floor(Math.random() * boardCols);
   if (board[0][col]) {
-    // 顶部已满，游戏结束
-    gameOver = true;
-    document.getElementById('game-over').style.display = 'block';
+    endGame();
     return;
   }
   falling = { row: 0, col, badge: randomBadge() };
   renderBoard();
-  // 让下落更慢，原300ms改为500ms
-  fallTimer = setInterval(fallStep, 500);
+  fallTimer = setInterval(fallStep, fallSpeed);
 }
 
 function fallStep() {
@@ -133,7 +157,6 @@ function fallStep() {
     falling.row++;
     renderBoard();
   } else {
-    // 落地
     board[row][col] = badge;
     clearInterval(fallTimer);
     falling = null;
@@ -161,11 +184,18 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') moveFalling(1);
 });
 
+function endGame() {
+  gameOver = true;
+  falling = null;
+  clearInterval(fallTimer);
+  clearInterval(timerInterval);
+  clearInterval(difficultyTimer);
+  document.getElementById('game-over').style.display = 'block';
+}
+
 function handleMergeAndEliminate(row, col) {
   const badge = board[row][col];
-  const dirs = [
-    [0, 1], [1, 0], [0, -1], [-1, 0]
-  ];
+  const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
   let mergeTarget = null;
   for (const [dr, dc] of dirs) {
     const nr = row + dr, nc = col + dc;
@@ -175,7 +205,6 @@ function handleMergeAndEliminate(row, col) {
     }
   }
   if (mergeTarget) {
-    // dongchang.png 两个相邻直接消除并弹动画，其余合成
     if (badge === 'xinchuan') {
       board[row][col] = null;
       board[mergeTarget[0]][mergeTarget[1]] = null;
@@ -203,10 +232,8 @@ function handleMergeAndEliminate(row, col) {
       }
     }
   }
-  // 弹出“你好棒啊”动画
-  // 标准三消：横向或纵向连续3个及以上
+
   const toEliminate = [];
-  // 横向
   for (let r = 0; r < boardRows; r++) {
     let count = 1;
     for (let c = 1; c < boardCols; c++) {
@@ -223,7 +250,6 @@ function handleMergeAndEliminate(row, col) {
       for (let k = 0; k < count; k++) toEliminate.push([r, boardCols - 1 - k, board[r][boardCols - 1]]);
     }
   }
-  // 纵向
   for (let c = 0; c < boardCols; c++) {
     let count = 1;
     for (let r = 1; r < boardRows; r++) {
@@ -240,8 +266,8 @@ function handleMergeAndEliminate(row, col) {
       for (let k = 0; k < count; k++) toEliminate.push([boardRows - 1 - k, c, board[boardRows - 1][c]]);
     }
   }
+
   if (toEliminate.length > 0) {
-    // 去重
     const unique = {};
     for (const [r, c, b] of toEliminate) unique[`${r},${c}`] = [r, c];
     for (const key in unique) {
@@ -255,16 +281,27 @@ function handleMergeAndEliminate(row, col) {
   }
 }
 
-// 新川消除时让其他校徽变黑
+function dropDown() {
+  for (let col = 0; col < boardCols; col++) {
+    for (let row = boardRows - 1; row > 0; row--) {
+      if (!board[row][col]) {
+        let above = row - 1;
+        while (above >= 0 && !board[above][col]) above--;
+        if (above >= 0) {
+          board[row][col] = board[above][col];
+          board[above][col] = null;
+        }
+      }
+    }
+  }
+  renderBoard();
+}
+
 function setOtherBadgesBlack(black) {
   const imgs = document.querySelectorAll('#game-board .cell');
   imgs.forEach(img => {
     if (img.src && !img.src.includes('xinchuan.png')) {
-      if (black) {
-        img.style.filter = 'grayscale(1) brightness(0.2)';
-      } else {
-        img.style.filter = '';
-      }
+      img.style.filter = black ? 'grayscale(1) brightness(0.2)' : '';
     }
   });
 }
@@ -302,27 +339,11 @@ function hideBravoAnimation() {
   }
 }
 
-function dropDown() {
-  for (let col = 0; col < boardCols; col++) {
-    for (let row = boardRows - 1; row > 0; row--) {
-      if (!board[row][col]) {
-        let above = row - 1;
-        while (above >= 0 && !board[above][col]) above--;
-        if (above >= 0) {
-          board[row][col] = board[above][col];
-          board[above][col] = null;
-        }
-      }
-    }
-  }
-  renderBoard();
-}
-
 document.getElementById('restart').onclick = () => {
+  clearInterval(timerInterval);
+  clearInterval(difficultyTimer);
+  clearInterval(fallTimer);
   createBoard();
 };
 
-// 初始化
-
 createBoard();
-
